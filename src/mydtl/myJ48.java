@@ -5,16 +5,10 @@
  */
 package mydtl;
 
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Vector;
 import weka.classifiers.Classifier;
-import weka.core.Attribute;
-import weka.core.Capabilities;
-import weka.core.Instance;
-import weka.core.Instances;
-import weka.core.NoSupportForMissingValuesException;
-import weka.core.Utils;
+import weka.core.*;
 
 /**
  *
@@ -35,6 +29,7 @@ public class myJ48 extends Classifier{
         // remove instances with missing class
         data = new Instances(data);
         data.deleteWithMissingClass();
+        
         buildTree(data);
     }
     
@@ -80,9 +75,9 @@ public class myJ48 extends Classifier{
         for (int i=0;i<instances.length;i++){
             int numSplitted = instances[i].numInstances();
             double probability = numSplitted / data.numInstances();
-            SI += probability * Utils.log2(probability);
+            SI -= probability * Utils.log2(probability);
         }
-        return (SI*-1);
+        return SI;
     }
     
     private double computeGR(Instances data, Attribute attr){
@@ -117,40 +112,41 @@ public class myJ48 extends Classifier{
             classValue = Instance.missingValue();
             return;
         }
-        
-        // search for highest GR
-        int numAttribute = trainingData.numAttributes();
-        double[] listGR =  new double[numAttribute];
-        for (int i=0;i<numAttribute;i++){
-            listGR[i]=0;
-        }
-        for (int i=0;i<numAttribute;i++){
-            Attribute attr = trainingData.attribute(i);
-            int attrIndex = attr.index();
-            listGR[attrIndex]=computeGR(trainingData, attr);
-        }
-        int indexMaxGR = Utils.maxIndex(listGR);
-        attrSeparator = trainingData.attribute(indexMaxGR);
-        
-        // set the root for the tree
-        if (listGR[indexMaxGR] == 0){ // leaf
-            attrSeparator = null;
-            int numClasses = trainingData.numClasses();
-            int numInstances = trainingData.numInstances();
-            result = new double[numClasses];
-            for (int i=0;i<numInstances;i++){
-                result[(int)trainingData.instance(i).classValue()]++;
+        else {
+            // search for highest GR
+            int numAttribute = trainingData.numAttributes();
+            double[] listGR =  new double[numAttribute];
+            for (int i=0;i<numAttribute;i++){
+                listGR[i]=0;
             }
-            Utils.normalize(result);
-            classValue = Utils.maxIndex(result);
-        }
-        else{ // branch
-            Instances[] splittedData = split(trainingData,attrSeparator);
-            int size = attrSeparator.numValues();
-            child = new myJ48[size];
-            for (int i=0;i<size;i++){
-                child[i] = new myJ48();
-                child[i].buildTree(splittedData[i]);
+            for (int i=0;i<numAttribute;i++){
+                Attribute attr = trainingData.attribute(i);
+                int attrIndex = attr.index();
+                listGR[attrIndex] = computeGR(trainingData, attr);
+            }
+            int indexMaxGR = Utils.maxIndex(listGR);
+            attrSeparator = trainingData.attribute(indexMaxGR);
+        
+            // set the root for the tree
+            if (listGR[indexMaxGR] == 0){ // leaf
+                attrSeparator = null;
+                int numClasses = trainingData.numClasses();
+                int numInstances = trainingData.numInstances();
+                result = new double[numClasses];
+                for (int i=0;i<numInstances;i++){
+                    result[(int)trainingData.instance(i).classValue()]++;
+                }
+                Utils.normalize(result);
+                classValue = Utils.maxIndex(result);
+            }
+            else{ // branch
+                Instances[] splittedData = split(trainingData,attrSeparator);
+                int size = attrSeparator.numValues();
+                child = new myJ48[size];
+                for (int i=0;i<size;i++){
+                    child[i] = new myJ48();
+                    child[i].buildTree(splittedData[i]);
+                }
             }
         }
     }
@@ -187,6 +183,8 @@ public class myJ48 extends Classifier{
 
         // attributes
         C.enable(Capabilities.Capability.NOMINAL_ATTRIBUTES);
+        C.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
+        C.enable(Capabilities.Capability.MISSING_VALUES);
 
         // class
         C.enable(Capabilities.Capability.NOMINAL_CLASS);
