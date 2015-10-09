@@ -1,16 +1,6 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package mydtl;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import weka.classifiers.Classifier;
@@ -26,7 +16,7 @@ import weka.filters.unsupervised.attribute.Remove;
 
 /**
  *
- * @author Teofebano
+ * @author Teofebano, Andrey
  */
 public class MyDTL {
     // Attribute
@@ -159,6 +149,6 @@ public class MyDTL {
         myID3 id3 = new myID3();
         myJ48 j48 = new myJ48();
         loadFile(SOURCE);
-        learnFull(data, j48);
+        learn10fold(data, j48);
     }    
 }

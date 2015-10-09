@@ -12,7 +12,7 @@ import weka.core.*;
 
 /**
  *
- * @author Teofebano
+ * @author Teofebano, Andrey
  */
 public class myJ48 extends Classifier{
     // Attributes
@@ -20,6 +20,7 @@ public class myJ48 extends Classifier{
     private Attribute attrSeparator;
     private double[] result;
     private double classValue;
+    private boolean m_IsLeaf;
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
@@ -110,7 +111,6 @@ public class myJ48 extends Classifier{
             attrSeparator = null;
             result = new double[trainingData.numClasses()];
             classValue = Instance.missingValue();
-            return;
         }
         else {
             // search for highest GR
@@ -142,6 +142,7 @@ public class myJ48 extends Classifier{
             else{ // branch
                 Instances[] splittedData = split(trainingData,attrSeparator);
                 int size = attrSeparator.numValues();
+                
                 child = new myJ48[size];
                 for (int i=0;i<size;i++){
                     child[i] = new myJ48();

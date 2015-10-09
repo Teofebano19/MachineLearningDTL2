@@ -1,25 +1,15 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package mydtl;
 
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Vector;
 import weka.classifiers.Classifier;
-import weka.core.Attribute;
-import weka.core.Capabilities;
 import weka.core.Capabilities.Capability;
-import weka.core.Instance;
-import weka.core.Instances;
-import weka.core.NoSupportForMissingValuesException;
-import weka.core.Utils;
+import weka.core.*;
 
 /**
  *
- * @author Teofebano
+ * @author Teofebano, Andrey
  */
 public class myID3 extends Classifier{
     // Attribute
