@@ -21,6 +21,7 @@ public class myJ48 extends Classifier{
     private double[] result;
     private double classValue;
     private boolean m_IsLeaf;
+    private double threshold = 0;
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
@@ -34,6 +35,7 @@ public class myJ48 extends Classifier{
         buildTree(data);
     }
     
+    // TREE
     private double computeEntropy(Instances data){
         double entropy = 0;
         // Class
@@ -61,7 +63,13 @@ public class myJ48 extends Classifier{
     
     private double computeIG(Instances data, Attribute attr){
        double IG = computeEntropy(data);
-       Instances[] instances = split(data,attr);
+       Instances[] instances;
+       if (attr.isNumeric()){
+           instances = splitNumeric(data,attr);
+       }
+       else{
+           instances = split(data,attr);
+       }
        for (int i=0;i<instances.length;i++){
            if (instances[i].numInstances() > 0){
                IG -= ((double)instances[i].numInstances() / data.numInstances()) * computeEntropy(instances[i]);
@@ -72,7 +80,13 @@ public class myJ48 extends Classifier{
     
     private double computeSplitInfo(Instances data, Attribute attr){
         double SI = 0;
-        Instances[] instances = split(data,attr);
+        Instances[] instances;
+        if (attr.isNumeric()){
+            instances = splitNumeric(data,attr);
+        }
+        else{
+            instances = split(data,attr);
+        }
         for (int i=0;i<instances.length;i++){
             int numSplitted = instances[i].numInstances();
             if (numSplitted!=0){
@@ -100,6 +114,29 @@ public class myJ48 extends Classifier{
         while (instEnum.hasMoreElements()) {
           Instance inst = (Instance) instEnum.nextElement();
           splitData[(int) inst.value(attr)].add(inst);
+        }
+        for (int i = 0; i < splitData.length; i++) {
+          splitData[i].compactify();
+        }
+        return splitData;
+    }
+    
+    private Instances[] splitNumeric(Instances data, Attribute attr){
+        Instances[] splitData = new Instances[2];
+        for (int j = 0; j < 2; j++) {
+          splitData[j] = new Instances(data, data.numInstances());
+        }
+        splitData[0].add(data.instance(0));
+        double threshold = countThreshold(data,attr);
+        Enumeration instEnum = data.enumerateInstances();
+        while (instEnum.hasMoreElements()) {
+          Instance inst = (Instance) instEnum.nextElement();
+          if (inst.value(attr)<threshold){
+            splitData[0].add(inst);
+          }
+          else{
+            splitData[1].add(inst);
+          }
         }
         for (int i = 0; i < splitData.length; i++) {
           splitData[i].compactify();
@@ -142,8 +179,17 @@ public class myJ48 extends Classifier{
                 classValue = Utils.maxIndex(result);
             }
             else{ // branch
-                Instances[] splittedData = split(trainingData,attrSeparator);
-                int size = attrSeparator.numValues();
+                Instances[] splittedData;
+                int size; 
+                if (attrSeparator.isNumeric()){
+                    splittedData = splitNumeric(trainingData,attrSeparator);
+                    size = 2;
+                    threshold = countThreshold(trainingData,attrSeparator);
+                }
+                else{
+                    splittedData = split(trainingData,attrSeparator);
+                    size = attrSeparator.numValues();
+                }
                 
                 child = new myJ48[size];
                 for (int i=0;i<size;i++){
@@ -154,6 +200,38 @@ public class myJ48 extends Classifier{
         }
     }
     
+    // NUMERIC TO NOMINAL
+    public double countThreshold(Instances trainingData, Attribute attr){
+        double threshold = Double.MIN_VALUE;
+        Vector<Double> numericValue = new Vector<Double>();
+        for (int j=0;j<trainingData.numInstances();j++){
+            numericValue.add(trainingData.instance(j).value(attr));
+        }
+        sort(numericValue);
+        boolean done = false;
+        for (int i=0;i<trainingData.numInstances()-1 && !done;i++){
+            if (trainingData.instance(i) != trainingData.instance(i+1)){
+                done = true;
+                threshold = (double)(trainingData.instance(i).value(attr) + trainingData.instance(i+1).value(attr))/2;
+            }
+        }
+        return threshold;
+    }
+    
+    public void sort(Vector<Double> listValue){
+        Double temp;
+        for (int i=0;i<listValue.size()-1;i++){
+            for (int j=1;j<listValue.size()-i;j++){
+                if (listValue.elementAt(j-1)>listValue.elementAt(j)){
+                    temp = listValue.elementAt(j-1);
+                    listValue.setElementAt(listValue.elementAt(j), j-1);
+                    listValue.setElementAt(temp, j);
+                }
+            }
+        }
+    }
+    
+    // Override
     @Override
     public double classifyInstance(Instance testingData) throws NoSupportForMissingValuesException, Exception{
         if (testingData.hasMissingValue()) {
@@ -163,7 +241,19 @@ public class myJ48 extends Classifier{
             return classValue;
         }
         else{
-            return child[(int) testingData.value(attrSeparator)].classifyInstance(testingData);
+            if (attrSeparator.isNumeric()){
+                int av = 0;
+                if (testingData.value(attrSeparator)<threshold){
+                    av = 0;
+                }
+                else{
+                    av = 1;
+                }
+                return child[av].classifyInstance(testingData);
+            }
+            else{
+                return child[(int) testingData.value(attrSeparator)].classifyInstance(testingData);
+            }
         }
     }
     

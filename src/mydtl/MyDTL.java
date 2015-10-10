@@ -20,7 +20,7 @@ import weka.filters.unsupervised.attribute.Remove;
  */
 public class MyDTL {
     // Attribute
-    private static final String SOURCE = "data/weather.nominal.arff";
+    private static final String SOURCE = "data/weather.numeric.arff";
     private static final String SOURCE_UNLABELED = "data/weather.nominal.unlabeled.arff";
     private static final int NUMBER_FOLD = 10;
     private static final int PERCENTAGE = 66;
@@ -149,6 +149,6 @@ public class MyDTL {
         myID3 id3 = new myID3();
         myJ48 j48 = new myJ48();
         loadFile(SOURCE);
-        learn10fold(data, j48);
+        learn10fold(data, DT);
     }    
 }
