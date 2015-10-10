@@ -64,7 +64,7 @@ public class myJ48 extends Classifier{
        Instances[] instances = split(data,attr);
        for (int i=0;i<instances.length;i++){
            if (instances[i].numInstances() > 0){
-               IG -= (instances[i].numInstances() / data.numInstances()) * computeEntropy(instances[i]);
+               IG -= ((double)instances[i].numInstances() / data.numInstances()) * computeEntropy(instances[i]);
            }
        }
        return IG;
@@ -75,8 +75,10 @@ public class myJ48 extends Classifier{
         Instances[] instances = split(data,attr);
         for (int i=0;i<instances.length;i++){
             int numSplitted = instances[i].numInstances();
-            double probability = numSplitted / data.numInstances();
-            SI -= probability * Utils.log2(probability);
+            if (numSplitted!=0){
+                double probability = (double) numSplitted / data.numInstances();
+                SI -= probability * Utils.log2(probability);
+            }
         }
         return SI;
     }
@@ -84,7 +86,7 @@ public class myJ48 extends Classifier{
     private double computeGR(Instances data, Attribute attr){
         double GR = computeIG(data,attr);
         if (computeSplitInfo(data,attr)!=0){
-            GR /= computeSplitInfo(data,attr);
+            GR = (double) GR / computeSplitInfo(data,attr);
         }
         return GR;
     }
@@ -126,7 +128,7 @@ public class myJ48 extends Classifier{
             }
             int indexMaxGR = Utils.maxIndex(listGR);
             attrSeparator = trainingData.attribute(indexMaxGR);
-        
+            
             // set the root for the tree
             if (listGR[indexMaxGR] == 0){ // leaf
                 attrSeparator = null;

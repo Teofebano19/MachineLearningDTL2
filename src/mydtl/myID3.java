@@ -59,7 +59,7 @@ public class myID3 extends Classifier{
        Instances[] instances = split(data,attr);
        for (int i=0;i<instances.length;i++){
            if (instances[i].numInstances() > 0){
-               IG -= (instances[i].numInstances() / data.numInstances()) * computeEntropy(instances[i]);
+               IG -= ((double)instances[i].numInstances() / data.numInstances()) * computeEntropy(instances[i]);
            }
        }
        return IG;
@@ -101,9 +101,11 @@ public class myID3 extends Classifier{
             Attribute attr = trainingData.attribute(i);
             int attrIndex = attr.index();
             listIG.setElementAt(computeIG(trainingData, attr), attrIndex);
+//            System.out.println(attr + " : " +computeIG(trainingData, attr));
         }
         int indexMaxIG = listIG.indexOf(Collections.max(listIG));
         attrSeparator = trainingData.attribute(indexMaxIG);
+//        System.out.println(attrSeparator);
         
         // set the root for the tree
         if (listIG.elementAt(indexMaxIG) == 0){ // leaf
