@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package mydtl;
 
 import java.util.Enumeration;
@@ -34,6 +29,26 @@ public class myJ48 extends Classifier{
         
         buildTree(data);
     }
+    
+    @Override
+    public Capabilities getCapabilities() {
+        Capabilities C = super.getCapabilities();
+        C.disableAll();
+
+        // attributes
+        C.enable(Capabilities.Capability.NOMINAL_ATTRIBUTES);
+        C.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
+        C.enable(Capabilities.Capability.MISSING_VALUES);
+
+        // class
+        C.enable(Capabilities.Capability.NOMINAL_CLASS);
+        C.enable(Capabilities.Capability.MISSING_CLASS_VALUES);
+
+        // instances
+        C.setMinimumNumberInstances(0);
+
+        return C;
+    }    
     
     // TREE
     private double computeEntropy(Instances data){
@@ -220,6 +235,7 @@ public class myJ48 extends Classifier{
     
     public void sort(Vector<Double> listValue){
         Double temp;
+        
         for (int i=0;i<listValue.size()-1;i++){
             for (int j=1;j<listValue.size()-i;j++){
                 if (listValue.elementAt(j-1)>listValue.elementAt(j)){
@@ -269,23 +285,41 @@ public class myJ48 extends Classifier{
         }
     }
     
-    @Override
-    public Capabilities getCapabilities() {
-        Capabilities C = super.getCapabilities();
-        C.disableAll();
-
-        // attributes
-        C.enable(Capabilities.Capability.NOMINAL_ATTRIBUTES);
-        C.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
-        C.enable(Capabilities.Capability.MISSING_VALUES);
-
-        // class
-        C.enable(Capabilities.Capability.NOMINAL_CLASS);
-        C.enable(Capabilities.Capability.MISSING_CLASS_VALUES);
-
-        // instances
-        C.setMinimumNumberInstances(0);
-
-        return C;
+    public boolean isMissing(Instances instance, Attribute attr){
+        boolean ismisval = false;
+        Enumeration instanceenum = instance.enumerateInstances();
+        
+        while(instanceenum.hasMoreElements() && !ismisval){
+            Instance inst = (Instance) instanceenum.nextElement();
+            if(inst.isMissing(attr)){
+                ismisval = true;
+            }
+        }
+        
+        return ismisval;
+    }
+    
+    public int findModusIndex(Instances instance, Attribute attr){
+        int modus[] = new int[attr.numValues()];
+        Enumeration instanceenum = instance.enumerateInstances();
+        
+        while(instanceenum.hasMoreElements()){
+            Instance inst = (Instance) instanceenum.nextElement();
+            if(!inst.isMissing(attr)){
+                modus[(int) inst.value(attr)]++;
+            }
+        }
+        
+        int max = 0;
+        int index = -1;
+        
+        for(int i = 0; i < modus.length; i++){
+            if(modus[i]>max){
+                max = modus[i];
+                index = i;
+            }
+        }
+        
+        return index;
     }
 }
