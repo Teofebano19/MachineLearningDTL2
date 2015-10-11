@@ -267,7 +267,6 @@ public class myJ48 extends Classifier{
         }
     }
     
-    // Override
     @Override
     public double classifyInstance(Instance testingData){
         int av;
