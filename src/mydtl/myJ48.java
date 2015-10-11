@@ -15,7 +15,7 @@ public class myJ48 extends Classifier{
     private Attribute attrSeparator;
     private double[] result;
     private double classValue;
-    private boolean m_IsLeaf;
+    private boolean isLeaf;
     private double threshold = 0;
     
     @Override
@@ -138,11 +138,12 @@ public class myJ48 extends Classifier{
     
     private Instances[] splitNumeric(Instances data, Attribute attr){
         Instances[] splitData = new Instances[2];
+        double threshold = countThreshold(data,attr);
+        
         for (int j = 0; j < 2; j++) {
           splitData[j] = new Instances(data, data.numInstances());
         }
         splitData[0].add(data.instance(0));
-        double threshold = countThreshold(data,attr);
         Enumeration instEnum = data.enumerateInstances();
         while (instEnum.hasMoreElements()) {
           Instance inst = (Instance) instEnum.nextElement();
@@ -160,11 +161,14 @@ public class myJ48 extends Classifier{
     }
     
     private void buildTree(Instances trainingData) {
+        isLeaf = false;
+        
         // zero instance
         if (trainingData.numInstances() == 0){
+            isLeaf = true;
             attrSeparator = null;
-            result = new double[trainingData.numClasses()];
             classValue = Instance.missingValue();
+            result = new double[trainingData.numClasses()];            
         }
         else {
             // search for highest GR
@@ -180,32 +184,48 @@ public class myJ48 extends Classifier{
             }
             int indexMaxGR = Utils.maxIndex(listGR);
             attrSeparator = trainingData.attribute(indexMaxGR);
+            String attrName = attrSeparator.name();
+            int numClasses = trainingData.numClasses();
+            int numInstances = trainingData.numInstances();
+            
+            result = new double[numClasses];
+            for (int i=0;i<numInstances;i++){
+                result[(int)trainingData.instance(i).classValue()]++;
+            }
+            Utils.normalize(result);
+            
             
             // set the root for the tree
             if (listGR[indexMaxGR] == 0){ // leaf
                 attrSeparator = null;
-                int numClasses = trainingData.numClasses();
-                int numInstances = trainingData.numInstances();
-                result = new double[numClasses];
-                for (int i=0;i<numInstances;i++){
-                    result[(int)trainingData.instance(i).classValue()]++;
-                }
-                Utils.normalize(result);
+                isLeaf = true;
                 classValue = Utils.maxIndex(result);
             }
             else{ // branch
+                if(isMissing(trainingData, attrSeparator)){
+                    int index = findModusIndex(trainingData, attrSeparator);
+                    
+                    Enumeration instanceenum = trainingData.enumerateInstances();
+                    while(instanceenum.hasMoreElements()){
+                        Instance inst = (Instance) instanceenum.nextElement();
+                        if(inst.isMissing(attrSeparator)){
+                            inst.setValue(attrSeparator, attrSeparator.value(index));
+                        }
+                    }
+                }
+                
                 Instances[] splittedData;
                 int size; 
+                
                 if (attrSeparator.isNumeric()){
                     splittedData = splitNumeric(trainingData,attrSeparator);
                     size = 2;
                     threshold = countThreshold(trainingData,attrSeparator);
                 }
-                else{
+                else{            
                     splittedData = split(trainingData,attrSeparator);
                     size = attrSeparator.numValues();
                 }
-                
                 child = new myJ48[size];
                 for (int i=0;i<size;i++){
                     child[i] = new myJ48();
@@ -249,16 +269,14 @@ public class myJ48 extends Classifier{
     
     // Override
     @Override
-    public double classifyInstance(Instance testingData) throws NoSupportForMissingValuesException, Exception{
-        if (testingData.hasMissingValue()) {
-            throw new NoSupportForMissingValuesException("MyJ48 can't handle such missing value");
-        }
+    public double classifyInstance(Instance testingData){
+        int av;
+        
         if (attrSeparator == null){
             return classValue;
         }
         else{
             if (attrSeparator.isNumeric()){
-                int av = 0;
                 if (testingData.value(attrSeparator)<threshold){
                     av = 0;
                 }

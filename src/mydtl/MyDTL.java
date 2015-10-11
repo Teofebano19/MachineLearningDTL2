@@ -149,6 +149,6 @@ public class MyDTL {
         myID3 id3 = new myID3();
         myJ48 j48 = new myJ48();
         loadFile(SOURCE);
-        learn10fold(data, DT);
+        learn10fold(data, j48);
     }    
 }
