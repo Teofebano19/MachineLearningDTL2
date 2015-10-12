@@ -2,6 +2,7 @@ package mydtl;
 
 import java.util.Enumeration;
 import java.util.Vector;
+import java.util.stream.DoubleStream;
 import weka.classifiers.Classifier;
 import weka.core.*;
 
@@ -11,7 +12,7 @@ import weka.core.*;
  */
 public class myJ48 extends Classifier{
     // Attributes
-    myJ48[] child;
+    myJ48[] children;
     private Attribute attrSeparator;
     private double[] result;
     private double classValue;
@@ -226,10 +227,10 @@ public class myJ48 extends Classifier{
                     splittedData = split(trainingData,attrSeparator);
                     size = attrSeparator.numValues();
                 }
-                child = new myJ48[size];
+                children = new myJ48[size];
                 for (int i=0;i<size;i++){
-                    child[i] = new myJ48();
-                    child[i].buildTree(splittedData[i]);
+                    children[i] = new myJ48();
+                    children[i].buildTree(splittedData[i]);
                 }
             }
         }
@@ -282,10 +283,10 @@ public class myJ48 extends Classifier{
                 else{
                     av = 1;
                 }
-                return child[av].classifyInstance(testingData);
+                return children[av].classifyInstance(testingData);
             }
             else{
-                return child[(int) testingData.value(attrSeparator)].classifyInstance(testingData);
+                return children[(int) testingData.value(attrSeparator)].classifyInstance(testingData);
             }
         }
     }
@@ -298,7 +299,7 @@ public class myJ48 extends Classifier{
         if (attrSeparator == null) {
             return result;
         } else { 
-            return child[(int) instance.value(attrSeparator)].distributionForInstance(instance);
+            return children[(int) instance.value(attrSeparator)].distributionForInstance(instance);
         }
     }
     
@@ -338,5 +339,32 @@ public class myJ48 extends Classifier{
         }
         
         return index;
+    }
+    
+    public double staticExpectedError(int N, int n, int k){
+        double E;
+        
+        E = (N - n + k - 1) / (double) (N + k);
+        
+        return E;
+    }
+    
+    public double backedUpError(){
+        double Err = 0;
+        double totInst = 0;
+        double totChildInst = 0;
+        
+        for(int i = 0; i < result.length; i++){
+            totInst += result[i];
+        }
+        
+        for(myJ48 child:children){
+            for(int j = 0; j < child.result.length; j++){
+                totChildInst += child.result[j];
+            }
+            Err += totChildInst/totInst * staticExpectedError((int)totChildInst, (int)child.result[(int)child.classValue],child.result.length);
+        }
+        
+        return Err;
     }
 }
