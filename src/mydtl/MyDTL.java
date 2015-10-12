@@ -20,8 +20,7 @@ import weka.filters.unsupervised.attribute.Remove;
  */
 public class MyDTL {
     // Attribute
-    private static final String SOURCE = "data/weather.numeric.arff";
-    private static final String SOURCE_UNLABELED = "data/weather.nominal.unlabeled.arff";
+    private static final String SOURCE = "data/iris.arff";
     private static final int NUMBER_FOLD = 10;
     private static final int PERCENTAGE = 66;
     public static Instances data;

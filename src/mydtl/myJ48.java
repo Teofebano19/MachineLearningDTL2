@@ -2,7 +2,6 @@ package mydtl;
 
 import java.util.Enumeration;
 import java.util.Vector;
-import java.util.stream.DoubleStream;
 import weka.classifiers.Classifier;
 import weka.core.*;
 
@@ -29,6 +28,7 @@ public class myJ48 extends Classifier{
         data.deleteWithMissingClass();
         
         buildTree(data);
+        pruneTree(data);
     }
     
     @Override
