@@ -236,6 +236,43 @@ public class myJ48 extends Classifier{
         }
     }
     
+    private double pruneTree(Instances trainingData){
+        double staticExpectedE = 0;
+        double backedUpE = 0;
+        double totInst = 0;
+        double totChildInst = 0;
+        
+        for(int i = 0; i < result.length; i++){
+            totInst += result[i];
+        }
+        staticExpectedE = staticExpectedError((int)totInst,(int)result[Utils.maxIndex(result)],(int)result.length);
+        
+        if(isLeaf){
+            return staticExpectedE;
+        }
+        else{
+            for(myJ48 child:children){
+                for(int j = 0; j < child.result.length; j++){
+                    totChildInst += child.result[j];
+                }
+                
+                backedUpE += totInst/totChildInst * child.pruneTree(trainingData);
+            }
+        }
+        
+        if(staticExpectedE < backedUpE){
+            isLeaf = true;
+            attrSeparator = null;
+            classValue = Utils.maxIndex(result);
+            children = null;
+            
+            return staticExpectedE;
+        }
+        else{
+            return backedUpE;
+        }
+    }
+    
     // NUMERIC TO NOMINAL
     public double countThreshold(Instances trainingData, Attribute attr){
         double threshold = Double.MIN_VALUE;
