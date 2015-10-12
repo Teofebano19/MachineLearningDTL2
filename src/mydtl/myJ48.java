@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package mydtl;
 
 import java.util.Enumeration;
@@ -16,11 +11,11 @@ import weka.core.*;
  */
 public class myJ48 extends Classifier{
     // Attributes
-    myJ48[] child;
+    myJ48[] children;
     private Attribute attrSeparator;
     private double[] result;
     private double classValue;
-    private boolean m_IsLeaf;
+    private boolean isLeaf;
     private double threshold = 0;
     
     @Override
@@ -33,7 +28,28 @@ public class myJ48 extends Classifier{
         data.deleteWithMissingClass();
         
         buildTree(data);
+        pruneTree(data);
     }
+    
+    @Override
+    public Capabilities getCapabilities() {
+        Capabilities C = super.getCapabilities();
+        C.disableAll();
+
+        // attributes
+        C.enable(Capabilities.Capability.NOMINAL_ATTRIBUTES);
+        C.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
+        C.enable(Capabilities.Capability.MISSING_VALUES);
+
+        // class
+        C.enable(Capabilities.Capability.NOMINAL_CLASS);
+        C.enable(Capabilities.Capability.MISSING_CLASS_VALUES);
+
+        // instances
+        C.setMinimumNumberInstances(0);
+
+        return C;
+    }    
     
     // TREE
     private double computeEntropy(Instances data){
@@ -123,11 +139,12 @@ public class myJ48 extends Classifier{
     
     private Instances[] splitNumeric(Instances data, Attribute attr){
         Instances[] splitData = new Instances[2];
+        double threshold = countThreshold(data,attr);
+        
         for (int j = 0; j < 2; j++) {
           splitData[j] = new Instances(data, data.numInstances());
         }
         splitData[0].add(data.instance(0));
-        double threshold = countThreshold(data,attr);
         Enumeration instEnum = data.enumerateInstances();
         while (instEnum.hasMoreElements()) {
           Instance inst = (Instance) instEnum.nextElement();
@@ -145,11 +162,14 @@ public class myJ48 extends Classifier{
     }
     
     private void buildTree(Instances trainingData) {
+        isLeaf = false;
+        
         // zero instance
         if (trainingData.numInstances() == 0){
+            isLeaf = true;
             attrSeparator = null;
-            result = new double[trainingData.numClasses()];
             classValue = Instance.missingValue();
+            result = new double[trainingData.numClasses()];            
         }
         else {
             // search for highest GR
@@ -165,38 +185,91 @@ public class myJ48 extends Classifier{
             }
             int indexMaxGR = Utils.maxIndex(listGR);
             attrSeparator = trainingData.attribute(indexMaxGR);
+            String attrName = attrSeparator.name();
+            int numClasses = trainingData.numClasses();
+            int numInstances = trainingData.numInstances();
+            
+            result = new double[numClasses];
+            for (int i=0;i<numInstances;i++){
+                result[(int)trainingData.instance(i).classValue()]++;
+            }
+            Utils.normalize(result);
+            
             
             // set the root for the tree
             if (listGR[indexMaxGR] == 0){ // leaf
                 attrSeparator = null;
-                int numClasses = trainingData.numClasses();
-                int numInstances = trainingData.numInstances();
-                result = new double[numClasses];
-                for (int i=0;i<numInstances;i++){
-                    result[(int)trainingData.instance(i).classValue()]++;
-                }
-                Utils.normalize(result);
+                isLeaf = true;
                 classValue = Utils.maxIndex(result);
             }
             else{ // branch
+                if(isMissing(trainingData, attrSeparator)){
+                    int index = findModusIndex(trainingData, attrSeparator);
+                    
+                    Enumeration instanceenum = trainingData.enumerateInstances();
+                    while(instanceenum.hasMoreElements()){
+                        Instance inst = (Instance) instanceenum.nextElement();
+                        if(inst.isMissing(attrSeparator)){
+                            inst.setValue(attrSeparator, attrSeparator.value(index));
+                        }
+                    }
+                }
+                
                 Instances[] splittedData;
                 int size; 
+                
                 if (attrSeparator.isNumeric()){
                     splittedData = splitNumeric(trainingData,attrSeparator);
                     size = 2;
                     threshold = countThreshold(trainingData,attrSeparator);
                 }
-                else{
+                else{            
                     splittedData = split(trainingData,attrSeparator);
                     size = attrSeparator.numValues();
                 }
-                
-                child = new myJ48[size];
+                children = new myJ48[size];
                 for (int i=0;i<size;i++){
-                    child[i] = new myJ48();
-                    child[i].buildTree(splittedData[i]);
+                    children[i] = new myJ48();
+                    children[i].buildTree(splittedData[i]);
                 }
             }
+        }
+    }
+    
+    private double pruneTree(Instances trainingData){
+        double staticExpectedE = 0;
+        double backedUpE = 0;
+        double totInst = 0;
+        double totChildInst = 0;
+        
+        for(int i = 0; i < result.length; i++){
+            totInst += result[i];
+        }
+        staticExpectedE = staticExpectedError((int)totInst,(int)result[Utils.maxIndex(result)],(int)result.length);
+        
+        if(isLeaf){
+            return staticExpectedE;
+        }
+        else{
+            for(myJ48 child:children){
+                for(int j = 0; j < child.result.length; j++){
+                    totChildInst += child.result[j];
+                }
+                
+                backedUpE += totInst/totChildInst * child.pruneTree(trainingData);
+            }
+        }
+        
+        if(staticExpectedE < backedUpE){
+            isLeaf = true;
+            attrSeparator = null;
+            classValue = Utils.maxIndex(result);
+            children = null;
+            
+            return staticExpectedE;
+        }
+        else{
+            return backedUpE;
         }
     }
     
@@ -220,6 +293,7 @@ public class myJ48 extends Classifier{
     
     public void sort(Vector<Double> listValue){
         Double temp;
+        
         for (int i=0;i<listValue.size()-1;i++){
             for (int j=1;j<listValue.size()-i;j++){
                 if (listValue.elementAt(j-1)>listValue.elementAt(j)){
@@ -231,28 +305,25 @@ public class myJ48 extends Classifier{
         }
     }
     
-    // Override
     @Override
-    public double classifyInstance(Instance testingData) throws NoSupportForMissingValuesException, Exception{
-        if (testingData.hasMissingValue()) {
-            throw new NoSupportForMissingValuesException("MyJ48 can't handle such missing value");
-        }
+    public double classifyInstance(Instance testingData){
+        int av;
+        
         if (attrSeparator == null){
             return classValue;
         }
         else{
             if (attrSeparator.isNumeric()){
-                int av = 0;
                 if (testingData.value(attrSeparator)<threshold){
                     av = 0;
                 }
                 else{
                     av = 1;
                 }
-                return child[av].classifyInstance(testingData);
+                return children[av].classifyInstance(testingData);
             }
             else{
-                return child[(int) testingData.value(attrSeparator)].classifyInstance(testingData);
+                return children[(int) testingData.value(attrSeparator)].classifyInstance(testingData);
             }
         }
     }
@@ -265,27 +336,72 @@ public class myJ48 extends Classifier{
         if (attrSeparator == null) {
             return result;
         } else { 
-            return child[(int) instance.value(attrSeparator)].distributionForInstance(instance);
+            return children[(int) instance.value(attrSeparator)].distributionForInstance(instance);
         }
     }
     
-    @Override
-    public Capabilities getCapabilities() {
-        Capabilities C = super.getCapabilities();
-        C.disableAll();
-
-        // attributes
-        C.enable(Capabilities.Capability.NOMINAL_ATTRIBUTES);
-        C.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
-        C.enable(Capabilities.Capability.MISSING_VALUES);
-
-        // class
-        C.enable(Capabilities.Capability.NOMINAL_CLASS);
-        C.enable(Capabilities.Capability.MISSING_CLASS_VALUES);
-
-        // instances
-        C.setMinimumNumberInstances(0);
-
-        return C;
+    public boolean isMissing(Instances instance, Attribute attr){
+        boolean ismisval = false;
+        Enumeration instanceenum = instance.enumerateInstances();
+        
+        while(instanceenum.hasMoreElements() && !ismisval){
+            Instance inst = (Instance) instanceenum.nextElement();
+            if(inst.isMissing(attr)){
+                ismisval = true;
+            }
+        }
+        
+        return ismisval;
+    }
+    
+    public int findModusIndex(Instances instance, Attribute attr){
+        int modus[] = new int[attr.numValues()];
+        Enumeration instanceenum = instance.enumerateInstances();
+        
+        while(instanceenum.hasMoreElements()){
+            Instance inst = (Instance) instanceenum.nextElement();
+            if(!inst.isMissing(attr)){
+                modus[(int) inst.value(attr)]++;
+            }
+        }
+        
+        int max = 0;
+        int index = -1;
+        
+        for(int i = 0; i < modus.length; i++){
+            if(modus[i]>max){
+                max = modus[i];
+                index = i;
+            }
+        }
+        
+        return index;
+    }
+    
+    public double staticExpectedError(int N, int n, int k){
+        double E;
+        
+        E = (N - n + k - 1) / (double) (N + k);
+        
+        return E;
+    }
+    
+    public double backedUpError(){
+        double Err = 0;
+        double totInst = 0;
+        double totChildInst = 0;
+        
+        for(int i = 0; i < result.length; i++){
+            totInst += result[i];
+        }
+        
+        for(myJ48 child:children){
+            for(int j = 0; j < child.result.length; j++){
+                totChildInst += child.result[j];
+            }
+            Err += totChildInst/totInst * staticExpectedError((int)totChildInst, (int)child.result[(int)child.classValue],child.result.length);
+        }
+        
+        return Err;
     }
 }
