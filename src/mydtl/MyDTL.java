@@ -20,7 +20,7 @@ import weka.filters.unsupervised.attribute.Remove;
  */
 public class MyDTL {
     // Attribute
-    private static final String SOURCE = "data/iris.arff";
+    private static final String SOURCE = "data/weather.nominal.missing.arff";
     private static final int NUMBER_FOLD = 10;
     private static final int PERCENTAGE = 66;
     public static Instances data;
@@ -97,9 +97,7 @@ public class MyDTL {
             cls = (Classifier) ois.readObject(); 
             ois.close();
         } catch (FileNotFoundException e){
-        } catch (IOException ex) {
-            Logger.getLogger(MyDTL.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ClassNotFoundException ex) {
+        } catch (IOException | ClassNotFoundException ex) {
             Logger.getLogger(MyDTL.class.getName()).log(Level.SEVERE, null, ex);
         } 
     }
@@ -148,6 +146,6 @@ public class MyDTL {
         myID3 id3 = new myID3();
         myJ48 j48 = new myJ48();
         loadFile(SOURCE);
-        learn10fold(data, j48);
+        learn10fold(data, DT);
     }    
 }
