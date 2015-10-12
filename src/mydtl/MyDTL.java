@@ -97,9 +97,7 @@ public class MyDTL {
             cls = (Classifier) ois.readObject(); 
             ois.close();
         } catch (FileNotFoundException e){
-        } catch (IOException ex) {
-            Logger.getLogger(MyDTL.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ClassNotFoundException ex) {
+        } catch (IOException | ClassNotFoundException ex) {
             Logger.getLogger(MyDTL.class.getName()).log(Level.SEVERE, null, ex);
         } 
     }

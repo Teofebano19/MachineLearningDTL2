@@ -4,8 +4,17 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+<<<<<<< HEAD
             <file>file:/C:/Users/Andrey/Documents/Teknik%20Informatika/Semester%207/IF4071%20-%20Pembelajaran%20Mesin/Tugas%20DT/MachineLearningDTL2/src/mydtl/MyDTL.java</file>
+=======
+<<<<<<< HEAD
+            <file>file:/F:/Netbeans%20Project/MachineLearningDTL2/src/mydtl/MyDTL.java</file>
+            <file>file:/F:/Netbeans%20Project/MachineLearningDTL2/src/mydtl/myID3.java</file>
+            <file>file:/F:/Netbeans%20Project/MachineLearningDTL2/src/mydtl/myJ48.java</file>
+=======
+>>>>>>> d3a64ca01448d3bcd77bffe3e790a1994ad77f33
             <file>file:/C:/Users/Andrey/Documents/Teknik%20Informatika/Semester%207/IF4071%20-%20Pembelajaran%20Mesin/Tugas%20DT/MachineLearningDTL2/src/mydtl/myJ48.java</file>
+>>>>>>> 94a74d8d1d26245091947acc30d2c05021cb3482
         </group>
     </open-files>
 </project-private>
