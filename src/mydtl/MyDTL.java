@@ -48,20 +48,45 @@ public class MyDTL {
             // Print
             System.out.println("=== Summary ===");
             System.out.println(eval.toSummaryString());
+            System.out.println(eval.toClassDetailsString());
+            System.out.println(eval.toMatrixString());
         } catch (Exception ex) {
             Logger.getLogger(MyDTL.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
-    // percentage split
+    // full
     public static void learnFull(Instances trainingData, Classifier classifier){
         try {
             // Build
             Classifier cls = classifier;
             int trainSize = trainingData.numInstances();
-            int testSize = trainingData.numInstances();
             Instances train = new Instances(trainingData, 0, trainSize);
             Instances test = new Instances(trainingData, 0, trainSize);
+            cls.buildClassifier(train);
+            // Eval
+            Evaluation eval = new Evaluation(trainingData);
+            eval.evaluateModel(classifier, test);
+            
+            // Print
+            System.out.println("=== Summary ===");
+            System.out.println(eval.toSummaryString());
+            System.out.println(eval.toClassDetailsString());
+            System.out.println(eval.toMatrixString());
+        } catch (Exception ex) {
+            Logger.getLogger(MyDTL.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    // percentage
+    public static void learnPercentage(Instances trainingData, Classifier classifier){
+        try {
+            // Build
+            Classifier cls = classifier;
+            int trainSize = trainingData.numInstances();
+            int threshold = trainSize * PERCENTAGE;
+            Instances train = new Instances(trainingData, 0, threshold);
+            Instances test = new Instances(trainingData, threshold + 1, trainSize);
             cls.buildClassifier(train);
             // Eval
             Evaluation eval = new Evaluation(trainingData);
@@ -144,11 +169,21 @@ public class MyDTL {
     
     // main
     public static void main(String[] args) {
-        Classifier DT = new J48();
-        Classifier ID3 = new Id3();
-        myID3 id3 = new myID3();
-        myJ48 j48 = new myJ48();
-        loadFile(SOURCE);
-        learnFull(data, id3);        
+        String[] listData = new String[]{"data/weather.nominal.arff", "data/weather.numeric.arff", "data/iris.arff"};
+        Classifier[] listClassifier = new Classifier[]{new myID3(), new Id3()};
+        String[] listClassifierName = new String[]{"myID3", "Id3", "myJ48", "J48"};
+        
+        for (int i=0;i<listData.length;i++){
+            for (int j=0;j<listClassifier.length;j++){
+                System.out.println("-------------//---------------");
+                System.out.println("Using " + listClassifierName[j] + " to classify " + listData[i]);
+                
+                loadFile(listData[i]);
+                System.out.println("FULL");
+                learnFull(data,listClassifier[j]);
+                System.out.println("10-FOLD");
+                learn10fold(data,listClassifier[j]);
+            }
+        }
     }    
 }
