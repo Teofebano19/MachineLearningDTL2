@@ -181,6 +181,7 @@ public class MyDTL {
                 loadFile(listData[i]);
                 System.out.println("FULL");
                 learnFull(data,listClassifier[j]);
+                System.out.println(" ");
                 System.out.println("10-FOLD");
                 learn10fold(data,listClassifier[j]);
             }

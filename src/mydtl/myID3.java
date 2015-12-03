@@ -20,7 +20,7 @@ public class myID3 extends Classifier{
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        // can classifier handle the data?
+        // capabilities check
         getCapabilities().testWithFail(data);
 
         // remove instances with missing class
@@ -47,22 +47,24 @@ public class myID3 extends Classifier{
         // Entropy calculation for each class
         for (int i=0;i<data.numClasses();i++){
             if (classCounter.elementAt(i)>0){
-                double probability = classCounter.elementAt(i) / numInstances;
-                entropy -= (probability * Utils.log2(probability));
+                entropy -= (classCounter.elementAt(i) * Utils.log2(classCounter.elementAt(i)));
             }
         }
-        return entropy;
+        entropy /= (double) data.numInstances();
+        return entropy + Utils.log2(data.numInstances());
     }
     
     private double computeIG(Instances data, Attribute attr){
-       double IG = computeEntropy(data);
-       Instances[] instances = split(data,attr);
-       for (int i=0;i<instances.length;i++){
-           if (instances[i].numInstances() > 0){
-               IG -= ((double)instances[i].numInstances() / data.numInstances()) * computeEntropy(instances[i]);
-           }
-       }
-       return IG;
+       double ret = computeEntropy(data);
+
+        Instances [] splitData = split(data,attr);
+
+        for(int i=0 ; i<splitData.length;i++){
+            if (splitData[i].numInstances() != 0){
+                ret =  ret - (((double)splitData[i].numInstances()/(double)data.numInstances()) * getEntropy(splitData[i]));
+            }
+        }
+        return 0;
     }
     
     private Instances[] split(Instances data, Attribute attr){
@@ -157,19 +159,14 @@ public class myID3 extends Classifier{
     
     @Override
     public Capabilities getCapabilities() {
-        Capabilities C = super.getCapabilities();
-        C.disableAll();
+        Capabilities result = super.getCapabilities();
+        result.disableAll();
 
-        // attributes
-        C.enable(Capability.NOMINAL_ATTRIBUTES);
+        result.enable(Capability.NOMINAL_ATTRIBUTES);
+        result.enable(Capability.NOMINAL_CLASS);
+        result.enable(Capability.MISSING_CLASS_VALUES);
+        result.setMinimumNumberInstances(0);
 
-        // class
-        C.enable(Capability.NOMINAL_CLASS);
-        C.enable(Capability.MISSING_CLASS_VALUES);
-
-        // instances
-        C.setMinimumNumberInstances(0);
-
-        return C;
+        return result;
     }
 }
