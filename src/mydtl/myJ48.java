@@ -329,10 +329,7 @@ public class myJ48 extends Classifier{
     }
     
     @Override
-    public double[] distributionForInstance(Instance instance) throws NoSupportForMissingValuesException {
-        if (instance.hasMissingValue()) {
-          throw new NoSupportForMissingValuesException("MyJ48 can't handle such missing value");
-        }
+    public double[] distributionForInstance(Instance instance) {
         if (attrSeparator == null) {
             return result;
         } else { 

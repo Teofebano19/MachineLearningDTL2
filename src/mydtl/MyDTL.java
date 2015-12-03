@@ -5,6 +5,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
+import weka.classifiers.evaluation.ConfusionMatrix;
 import weka.classifiers.trees.Id3;
 import weka.classifiers.trees.J48;
 import weka.core.Debug;
@@ -57,10 +58,10 @@ public class MyDTL {
         try {
             // Build
             Classifier cls = classifier;
-            int trainSize = (int) Math.round(trainingData.numInstances() * PERCENTAGE/ 100);
-            int testSize = trainingData.numInstances() - trainSize;
+            int trainSize = trainingData.numInstances();
+            int testSize = trainingData.numInstances();
             Instances train = new Instances(trainingData, 0, trainSize);
-            Instances test = new Instances(trainingData, trainSize, testSize);
+            Instances test = new Instances(trainingData, 0, trainSize);
             cls.buildClassifier(train);
             // Eval
             Evaluation eval = new Evaluation(trainingData);
@@ -69,6 +70,8 @@ public class MyDTL {
             // Print
             System.out.println("=== Summary ===");
             System.out.println(eval.toSummaryString());
+            System.out.println(eval.toClassDetailsString());
+            System.out.println(eval.toMatrixString());
         } catch (Exception ex) {
             Logger.getLogger(MyDTL.class.getName()).log(Level.SEVERE, null, ex);
         }
