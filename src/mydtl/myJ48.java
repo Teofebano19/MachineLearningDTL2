@@ -2,6 +2,7 @@ package mydtl;
 
 import java.util.Enumeration;
 import java.util.Vector;
+import java.util.stream.DoubleStream;
 import weka.classifiers.Classifier;
 import weka.core.*;
 
@@ -237,39 +238,30 @@ public class myJ48 extends Classifier{
     }
     
     private double pruneTree(Instances trainingData){
-        double staticExpectedE = 0;
-        double backedUpE = 0;
-        double totInst = 0;
-        double totChildInst = 0;
-        
-        for(int i = 0; i < result.length; i++){
-            totInst += result[i];
-        }
-        staticExpectedE = staticExpectedError((int)totInst,(int)result[Utils.maxIndex(result)],(int)result.length);
+        double staticExpectedE = staticExpectedError((int) DoubleStream.of(result).sum(),
+                (int) result[maxIndex(result)], result.length);
         
         if(isLeaf){
             return staticExpectedE;
-        }
-        else{
-            for(myJ48 child:children){
-                for(int j = 0; j < child.result.length; j++){
-                    totChildInst += child.result[j];
-                }
-                
-                backedUpE += totInst/totChildInst * child.pruneTree(trainingData);
-            }
-        }
-        
-        if(staticExpectedE < backedUpE){
-            isLeaf = true;
-            attrSeparator = null;
-            classValue = Utils.maxIndex(result);
-            children = null;
+        }else{
+            double backUpE = 0;
+            double totalInst = DoubleStream.of(result).sum();
             
-            return staticExpectedE;
-        }
-        else{
-            return backedUpE;
+            for(myJ48 childrenx : children){
+                double totalChildrenInst = DoubleStream.of(childrenx.result).sum();
+                backUpE = backUpE + totalChildrenInst / totalInst * childrenx.pruneTree(trainingData);
+            }
+            
+            if(staticExpectedE < backUpE){
+                attrSeparator = null;
+                classValue = maxIndex(result);
+                isLeaf = true;
+                children = null;
+                
+                return staticExpectedE;
+            }else{
+                return backUpE;
+            }
         }
     }
     
@@ -384,21 +376,32 @@ public class myJ48 extends Classifier{
     }
     
     public double backedUpError(){
-        double Err = 0;
-        double totInst = 0;
-        double totChildInst = 0;
-        
-        for(int i = 0; i < result.length; i++){
-            totInst += result[i];
-        }
+        double error = 0;
+        double totalInst = DoubleStream.of(result).sum();
         
         for(myJ48 child:children){
-            for(int j = 0; j < child.result.length; j++){
-                totChildInst += child.result[j];
-            }
-            Err += totChildInst/totInst * staticExpectedError((int)totChildInst, (int)child.result[(int)child.classValue],child.result.length);
+            double totalChildInst = DoubleStream.of(child.result).sum();
+            error = error + totalChildInst / totalInst 
+                    * staticExpectedError((int) totalChildInst,
+                            (int) child.result[(int)child.classValue],
+                            child.result.length);
+                
         }
+        return error;
+    }
+    
+    public int maxIndex(double[] array) {
+        int max = 0;
         
-        return Err;
+        if (array.length > 0) {
+            for (int i = 1; i < array.length; ++i) {
+                if (array[i] > array[max]) {
+                    max = i;
+                }
+            }
+            return max;
+        } else {
+            return -1;
+        }
     }
 }
