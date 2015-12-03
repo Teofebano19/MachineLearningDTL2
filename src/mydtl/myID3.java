@@ -84,15 +84,16 @@ public class myID3 extends Classifier{
     
     private void buildTree(Instances trainingData) {
         if(trainingData.numInstances()!=0){
-            double[] informationGains = new double[trainingData.numAttributes()];   Enumeration attEnum = trainingData.enumerateAttributes();
+            // Search for highest IG
+            double[] informationGains = new double[trainingData.numAttributes()];   
+            Enumeration attEnum = trainingData.enumerateAttributes();
             while (attEnum.hasMoreElements()) {
                 Attribute att = (Attribute) attEnum.nextElement();
                 informationGains[att.index()] = computeIG(trainingData, att);
             }
             attrSeparator = trainingData.attribute(Utils.maxIndex(informationGains));
-
-
-            if (Utils.eq(informationGains[attrSeparator.index()], 0)) {
+            
+            if (informationGains[attrSeparator.index()] == 0) { // Leaf
                 attrSeparator = null;
                 result = new double[trainingData.numClasses()];
                 Enumeration instEnum = trainingData.enumerateInstances();
@@ -103,7 +104,7 @@ public class myID3 extends Classifier{
                 Utils.normalize(result);
                 classValue = Utils.maxIndex(result);
                 classAttribute = trainingData.classAttribute();
-            } else {
+            } else { // Branch
                 Instances[] splitData = split(trainingData, attrSeparator);
                 child = new myID3[attrSeparator.numValues()];
                 for (int i=0; i<attrSeparator.numValues(); i++) {

@@ -14,6 +14,7 @@ public class myJ48 extends Classifier{
     // Attributes
     myJ48[] children;
     private Attribute attrSeparator;
+    private Attribute classAttribute;
     private double[] result;
     private double classValue;
     private boolean isLeaf;
@@ -29,28 +30,8 @@ public class myJ48 extends Classifier{
         data.deleteWithMissingClass();
         
         buildTree(data);
-        pruneTree(data);
-    }
-    
-    @Override
-    public Capabilities getCapabilities() {
-        Capabilities C = super.getCapabilities();
-        C.disableAll();
-
-        // attributes
-        C.enable(Capabilities.Capability.NOMINAL_ATTRIBUTES);
-        C.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
-        C.enable(Capabilities.Capability.MISSING_VALUES);
-
-        // class
-        C.enable(Capabilities.Capability.NOMINAL_CLASS);
-        C.enable(Capabilities.Capability.MISSING_CLASS_VALUES);
-
-        // instances
-        C.setMinimumNumberInstances(0);
-
-        return C;
-    }    
+        //pruneTree(data);
+    } 
     
     // TREE
     private double computeEntropy(Instances data){
@@ -69,13 +50,13 @@ public class myJ48 extends Classifier{
             classCounter.setElementAt(classCounter.elementAt(cv)+1, cv);
         }
         // Entropy calculation for each class
-        for (int i=0;i<numClasses;i++){
+        for (int i=0;i<data.numClasses();i++){
             if (classCounter.elementAt(i)>0){
-                double probability = classCounter.elementAt(i) / numInstances;
-                entropy -= (probability * Utils.log2(probability));
+                entropy -= (classCounter.elementAt(i) * Utils.log2(classCounter.elementAt(i)));
             }
         }
-        return entropy;
+        entropy /= (double) data.numInstances();
+        return entropy + Utils.log2(data.numInstances());
     }
     
     private double computeIG(Instances data, Attribute attr){
@@ -88,8 +69,8 @@ public class myJ48 extends Classifier{
            instances = split(data,attr);
        }
        for (int i=0;i<instances.length;i++){
-           if (instances[i].numInstances() > 0){
-               IG -= ((double)instances[i].numInstances() / data.numInstances()) * computeEntropy(instances[i]);
+           if (instances[i].numInstances() != 0){
+               IG -= ((double)instances[i].numInstances() / (double) data.numInstances()) * computeEntropy(instances[i]);
            }
        }
        return IG;
@@ -107,7 +88,7 @@ public class myJ48 extends Classifier{
         for (int i=0;i<instances.length;i++){
             int numSplitted = instances[i].numInstances();
             if (numSplitted!=0){
-                double probability = (double) numSplitted / data.numInstances();
+                double probability = (double) (numSplitted / data.numInstances());
                 SI -= probability * Utils.log2(probability);
             }
         }
@@ -147,6 +128,7 @@ public class myJ48 extends Classifier{
         }
         splitData[0].add(data.instance(0));
         Enumeration instEnum = data.enumerateInstances();
+        instEnum.nextElement();
         while (instEnum.hasMoreElements()) {
           Instance inst = (Instance) instEnum.nextElement();
           if (inst.value(attr)<threshold){
@@ -164,47 +146,31 @@ public class myJ48 extends Classifier{
     
     private void buildTree(Instances trainingData) {
         isLeaf = false;
-        
-        // zero instance
-        if (trainingData.numInstances() == 0){
-            isLeaf = true;
-            attrSeparator = null;
-            classValue = Instance.missingValue();
-            result = new double[trainingData.numClasses()];            
-        }
-        else {
+
+        if (trainingData.numInstances() != 0){
             // search for highest GR
-            int numAttribute = trainingData.numAttributes();
-            double[] listGR =  new double[numAttribute];
-            for (int i=0;i<numAttribute;i++){
-                listGR[i]=0;
+            double[] gainRatio = new double[trainingData.numAttributes()];   
+            Enumeration attEnum = trainingData.enumerateAttributes();
+            while (attEnum.hasMoreElements()) {
+                Attribute att = (Attribute) attEnum.nextElement();
+                gainRatio[att.index()] = computeGR(trainingData, att);
             }
-            for (int i=0;i<numAttribute;i++){
-                Attribute attr = trainingData.attribute(i);
-                int attrIndex = attr.index();
-                listGR[attrIndex] = computeGR(trainingData, attr);
-            }
-            int indexMaxGR = Utils.maxIndex(listGR);
-            attrSeparator = trainingData.attribute(indexMaxGR);
-            String attrName = attrSeparator.name();
-            int numClasses = trainingData.numClasses();
-            int numInstances = trainingData.numInstances();
+            attrSeparator = trainingData.attribute(Utils.maxIndex(gainRatio));
             
-            result = new double[numClasses];
-            for (int i=0;i<numInstances;i++){
-                result[(int)trainingData.instance(i).classValue()]++;
-            }
-            Utils.normalize(result);
-            
-            
-            // set the root for the tree
-            if (listGR[indexMaxGR] == 0){ // leaf
+            if (gainRatio[attrSeparator.index()] == 0) { // Leaf
                 attrSeparator = null;
                 isLeaf = true;
+                result = new double[trainingData.numClasses()];
+                Enumeration instEnum = trainingData.enumerateInstances();
+                while (instEnum.hasMoreElements()) {
+                    Instance inst = (Instance) instEnum.nextElement();
+                    result[(int) inst.classValue()]++;
+                }
+                Utils.normalize(result);
                 classValue = Utils.maxIndex(result);
-            }
-            else{ // branch
-                if(isMissing(trainingData, attrSeparator)){
+                classAttribute = trainingData.classAttribute();
+            } else { // Branch
+                if (isMissing(trainingData, attrSeparator)){
                     int index = findModusIndex(trainingData, attrSeparator);
                     
                     Enumeration instanceenum = trainingData.enumerateInstances();
@@ -216,24 +182,28 @@ public class myJ48 extends Classifier{
                     }
                 }
                 
-                Instances[] splittedData;
-                int size; 
-                
+                Instances[] splitData;
+                int size;
                 if (attrSeparator.isNumeric()){
-                    splittedData = splitNumeric(trainingData,attrSeparator);
+                    splitData = splitNumeric(trainingData,attrSeparator);
                     size = 2;
                     threshold = countThreshold(trainingData,attrSeparator);
                 }
                 else{            
-                    splittedData = split(trainingData,attrSeparator);
+                    splitData = split(trainingData,attrSeparator);
                     size = attrSeparator.numValues();
                 }
-                children = new myJ48[size];
-                for (int i=0;i<size;i++){
-                    children[i] = new myJ48();
-                    children[i].buildTree(splittedData[i]);
+                System.out.print("splitdata: ");
+                for (Instances s : splitData) {
+                    System.out.print(s.numInstances() + " ");
                 }
-            }
+                System.out.println("");
+                children = new myJ48[size];
+                for (int i=0; i<size; i++) {
+                    children[i] = new myJ48();
+                    children[i].buildTree(splitData[i]);
+                }
+            }           
         }
     }
     
@@ -322,10 +292,22 @@ public class myJ48 extends Classifier{
     
     @Override
     public double[] distributionForInstance(Instance instance) {
+        int av;
         if (attrSeparator == null) {
             return result;
-        } else { 
-            return children[(int) instance.value(attrSeparator)].distributionForInstance(instance);
+        } else {
+            if (attrSeparator.isNumeric()){
+                if (instance.value(attrSeparator)<threshold){
+                    av = 0;
+                }
+                else{
+                    av = 1;
+                }
+                return children[av].distributionForInstance(instance);
+            }
+            else{
+                return children[(int) instance.value(attrSeparator)].distributionForInstance(instance);
+            }
         }
     }
     
