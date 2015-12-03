@@ -15,6 +15,7 @@ public class myID3 extends Classifier{
     // Attribute
     myID3[] child;
     private Attribute attrSeparator;
+    private Attribute classAttribute;
     private double[] result;
     private double classValue;
     
@@ -55,16 +56,14 @@ public class myID3 extends Classifier{
     }
     
     private double computeIG(Instances data, Attribute attr){
-       double ret = computeEntropy(data);
-
-        Instances [] splitData = split(data,attr);
-
-        for(int i=0 ; i<splitData.length;i++){
-            if (splitData[i].numInstances() != 0){
-                ret =  ret - (((double)splitData[i].numInstances()/(double)data.numInstances()) * getEntropy(splitData[i]));
-            }
-        }
-        return 0;
+       double IG = computeEntropy(data);
+       Instances[] instances = split(data,attr);
+       for (int i=0;i<instances.length;i++){
+           if (instances[i].numInstances() != 0){
+               IG -= ((double)instances[i].numInstances() / (double) data.numInstances()) * computeEntropy(instances[i]);
+           }
+       }
+       return IG;
     }
     
     private Instances[] split(Instances data, Attribute attr){
@@ -84,50 +83,33 @@ public class myID3 extends Classifier{
     }
     
     private void buildTree(Instances trainingData) {
-        // zero instance
-        if (trainingData.numInstances() == 0){
-            attrSeparator = null;
-            result = new double[trainingData.numClasses()];
-            classValue = Instance.missingValue();
-            return;
-        }
-        
-        // search for highest IG
-        Vector<Double> listIG =  new Vector<Double>();
-        int numAttribute = trainingData.numAttributes();
-        listIG.setSize(numAttribute);
-        for (int i=0;i<numAttribute;i++){
-            listIG.setElementAt(Double.valueOf(0), i);
-        }
-        for (int i=0;i<numAttribute;i++){
-            Attribute attr = trainingData.attribute(i);
-            int attrIndex = attr.index();
-            listIG.setElementAt(computeIG(trainingData, attr), attrIndex);
-//            System.out.println(attr + " : " +computeIG(trainingData, attr));
-        }
-        int indexMaxIG = listIG.indexOf(Collections.max(listIG));
-        attrSeparator = trainingData.attribute(indexMaxIG);
-//        System.out.println(attrSeparator);
-        
-        // set the root for the tree
-        if (listIG.elementAt(indexMaxIG) == 0){ // leaf
-            attrSeparator = null;
-            int numClasses = trainingData.numClasses();
-            int numInstances = trainingData.numInstances();
-            result = new double[numClasses];
-            for (int i=0;i<numInstances;i++){
-                result[(int)trainingData.instance(i).classValue()]++;
+        if(trainingData.numInstances()!=0){
+            double[] informationGains = new double[trainingData.numAttributes()];   Enumeration attEnum = trainingData.enumerateAttributes();
+            while (attEnum.hasMoreElements()) {
+                Attribute att = (Attribute) attEnum.nextElement();
+                informationGains[att.index()] = computeIG(trainingData, att);
             }
-            Utils.normalize(result);
-            classValue = Utils.maxIndex(result);
-        }
-        else{ // branch
-            Instances[] splittedData = split(trainingData,attrSeparator);
-            int size = attrSeparator.numValues();
-            child = new myID3[size];
-            for (int i=0;i<size;i++){
-                child[i] = new myID3();
-                child[i].buildTree(splittedData[i]);
+            attrSeparator = trainingData.attribute(Utils.maxIndex(informationGains));
+
+
+            if (Utils.eq(informationGains[attrSeparator.index()], 0)) {
+                attrSeparator = null;
+                result = new double[trainingData.numClasses()];
+                Enumeration instEnum = trainingData.enumerateInstances();
+                while (instEnum.hasMoreElements()) {
+                    Instance inst = (Instance) instEnum.nextElement();
+                    result[(int) inst.classValue()]++;
+                }
+                Utils.normalize(result);
+                classValue = Utils.maxIndex(result);
+                classAttribute = trainingData.classAttribute();
+            } else {
+                Instances[] splitData = split(trainingData, attrSeparator);
+                child = new myID3[attrSeparator.numValues()];
+                for (int i=0; i<attrSeparator.numValues(); i++) {
+                    child[i] = new myID3();
+                    child[i].buildTree(splitData[i]);
+                }
             }
         }
     }
