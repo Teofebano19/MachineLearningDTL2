@@ -21,7 +21,6 @@ import weka.filters.unsupervised.attribute.Remove;
  */
 public class MyDTL {
     // Attribute
-    private static final String SOURCE = "data/weather.nominal.arff";
     private static final int NUMBER_FOLD = 10;
     private static final int PERCENTAGE = 66;
     public static Instances data;
@@ -169,9 +168,9 @@ public class MyDTL {
     
     // main
     public static void main(String[] args) {
-        String[] listData = new String[]{"data/weather.nominal.arff", "data/iris.arff"};
-        Classifier[] listClassifier = new Classifier[]{new myJ48(), new J48()};
-        String[] listClassifierName = new String[]{"myJ48", "J48"};
+        String[] listData = new String[]{"data/weather.numeric.arff", "data/iris.arff"};
+        Classifier[] listClassifier = new Classifier[]{new myID3(), new Id3(), new myJ48(), new J48()};
+        String[] listClassifierName = new String[]{"myID3" ,"ID3" ,"myJ48", "J48"};
         
         for (int i=0;i<listData.length;i++){
             for (int j=0;j<listClassifier.length;j++){
