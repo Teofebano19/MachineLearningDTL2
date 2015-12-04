@@ -198,14 +198,6 @@ public class myJ48 extends Classifier{
                     splitData = split(trainingData,attrSeparator);
                     size = attrSeparator.numValues();
                 }
-<<<<<<< HEAD
-=======
-//                System.out.print("splitdata: ");
-                for (Instances s : splitData) {
-//                    System.out.print(s.numInstances() + " ");
-                }
-//                System.out.println("");
->>>>>>> 7ab81bee4fe2718b43460e8b4061e63b0a0a9a5f
                 children = new myJ48[size];
                 for (int i=0; i<size; i++) {
                     children[i] = new myJ48();
