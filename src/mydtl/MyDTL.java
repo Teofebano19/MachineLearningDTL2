@@ -168,9 +168,15 @@ public class MyDTL {
     
     // main
     public static void main(String[] args) {
+<<<<<<< HEAD
         String[] listData = new String[]{"data/weather.numeric.arff", "data/iris.arff"};
         Classifier[] listClassifier = new Classifier[]{new myID3(), new Id3(), new myJ48(), new J48()};
         String[] listClassifierName = new String[]{"myID3" ,"ID3" ,"myJ48", "J48"};
+=======
+        String[] listData = new String[]{"data/iris.arff"};
+        Classifier[] listClassifier = new Classifier[]{new myJ48(), new J48()};
+        String[] listClassifierName = new String[]{"myJ48", "J48"};
+>>>>>>> 7ab81bee4fe2718b43460e8b4061e63b0a0a9a5f
         
         for (int i=0;i<listData.length;i++){
             for (int j=0;j<listClassifier.length;j++){

@@ -30,7 +30,7 @@ public class myJ48 extends Classifier{
         data.deleteWithMissingClass();
         
         buildTree(data);
-        //pruneTree(data);
+        pruneTree(data);
     } 
     
     // TREE
@@ -147,7 +147,11 @@ public class myJ48 extends Classifier{
     private void buildTree(Instances trainingData) {
         isLeaf = false;
 
-        if (trainingData.numInstances() != 0){
+        if(trainingData.numInstances() == 0){
+            attrSeparator = null;
+            result = new double[trainingData.numClasses()];
+            isLeaf = true;
+        }else{
             // search for highest GR
             double[] gainRatio = new double[trainingData.numAttributes()];   
             Enumeration attEnum = trainingData.enumerateAttributes();
@@ -170,6 +174,7 @@ public class myJ48 extends Classifier{
                 classValue = Utils.maxIndex(result);
                 classAttribute = trainingData.classAttribute();
             } else { // Branch
+                isLeaf = false;
                 if (isMissing(trainingData, attrSeparator)){
                     int index = findModusIndex(trainingData, attrSeparator);
                     
@@ -193,18 +198,34 @@ public class myJ48 extends Classifier{
                     splitData = split(trainingData,attrSeparator);
                     size = attrSeparator.numValues();
                 }
+<<<<<<< HEAD
+=======
+//                System.out.print("splitdata: ");
+                for (Instances s : splitData) {
+//                    System.out.print(s.numInstances() + " ");
+                }
+//                System.out.println("");
+>>>>>>> 7ab81bee4fe2718b43460e8b4061e63b0a0a9a5f
                 children = new myJ48[size];
                 for (int i=0; i<size; i++) {
                     children[i] = new myJ48();
                     children[i].buildTree(splitData[i]);
                 }
+                
+                result = new double[trainingData.numClasses()];
+                Enumeration instEnum = trainingData.enumerateInstances();
+                while (instEnum.hasMoreElements()) {
+                    Instance inst = (Instance) instEnum.nextElement();
+                    result[(int) inst.classValue()]++;
+                }
+                Utils.normalize(result);
             }           
         }
     }
     
     private double pruneTree(Instances trainingData){
         double staticExpectedE = staticExpectedError((int) DoubleStream.of(result).sum(),
-                (int) result[maxIndex(result)], result.length);
+                (int) result[Utils.maxIndex(result)], result.length);
         
         if(isLeaf){
             return staticExpectedE;
@@ -219,7 +240,7 @@ public class myJ48 extends Classifier{
             
             if(staticExpectedE < backUpE){
                 attrSeparator = null;
-                classValue = maxIndex(result);
+                classValue = Utils.maxIndex(result);
                 isLeaf = true;
                 children = null;
                 
@@ -367,18 +388,4 @@ public class myJ48 extends Classifier{
         return error;
     }
     
-    public int maxIndex(double[] array) {
-        int max = 0;
-        
-        if (array.length > 0) {
-            for (int i = 1; i < array.length; ++i) {
-                if (array[i] > array[max]) {
-                    max = i;
-                }
-            }
-            return max;
-        } else {
-            return -1;
-        }
-    }
 }
